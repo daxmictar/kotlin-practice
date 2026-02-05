@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">MicroMVP</string>
+    <string name="incrementButton">+1</string>
+    <string name="resetButton">Reset</string>
+</resources>
