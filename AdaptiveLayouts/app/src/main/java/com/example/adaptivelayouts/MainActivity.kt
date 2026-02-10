@@ -99,31 +99,6 @@ fun Magic8BallTextField(
 }
 
 @Composable
-fun Magic8Ball(modifier: Modifier = Modifier) {
-    val questionState = remember { mutableStateOf("") }
-    val askedState = remember { mutableStateOf("") }
-    val hasAnswer = remember { mutableStateOf(false) }
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Magic8BallImage(hasBeenAsked = hasAnswer.value)
-        Magic8BallTextField(modifier = modifier, text = questionState, hasAnswer = hasAnswer, asked = askedState.value)
-        Button(
-            modifier = modifier.padding(top = 10.dp),
-            onClick = {
-                if (questionState.value.isNotEmpty()) {
-                    askedState.value = questionState.value
-                    questionState.value = ""
-                    hasAnswer.value = !hasAnswer.value
-                }
-            }
-        ) {
-            Text("Ask")
-        }
-    }
-}
-
-@Composable
 fun Magic8BallApp(
     portrait: Boolean = true,
 ) {
