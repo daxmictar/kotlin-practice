@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -22,8 +20,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -35,15 +33,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.mymonster.ui.theme.MyMonsterTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -76,6 +72,24 @@ data class MonsterData (
 ) {
     fun key() = stringPreferencesKey("monster_$id")
 
+    fun calculateDecay() {
+        if (this.lastUpdated > 0L) {
+            val currentTime = System.currentTimeMillis()
+            val diffInMs = currentTime - this.lastUpdated
+            val secondsPassed = diffInMs / 1000.0
+
+            val decayPerSecond = 1
+            val pointsToLose = (secondsPassed * decayPerSecond).toInt()
+
+            if (pointsToLose > 0) {
+                val currentHappy = this.happiness
+                val newHappy = currentHappy - pointsToLose
+                this.happiness = if (newHappy < 0) 0 else newHappy
+                this.lastUpdated = currentTime
+            }
+        }
+    }
+
     suspend fun save(context: Context) {
         val json = Json.encodeToString(this)
         context.dataStore.edit { it[key()] = json }
@@ -87,46 +101,74 @@ data class MonsterData (
     }
 }
 
+class MonsterManager(
+    val context: Context,
+    val scope: CoroutineScope
+) {
+    private val monsterList = mutableListOf<MonsterData>(
+        MonsterData("A"),
+        MonsterData("B"),
+        MonsterData("C"),
+        MonsterData("D"),
+    )
+
+    var activeIndex by mutableIntStateOf(value = 0)
+    val activeMonster = mutableStateOf(monsterList[activeIndex])
+
+    fun swap() {
+        activeIndex = (activeIndex + 1) % monsterList.size
+        // triggers a recompose
+        forceRecompose(monsterList[activeIndex])
+    }
+
+    fun loadAll() {
+        scope.launch {
+            for (i in monsterList.indices) {
+                monsterList[i] = monsterList[i].load(context)
+            }
+            forceRecompose(monsterList[activeIndex])
+        }
+    }
+
+    fun update(update: MonsterData) {
+        update.lastUpdated = System.currentTimeMillis()
+        forceRecompose(update)
+        scope.launch {
+            monsterList[activeIndex] = update
+            monsterList[activeIndex].save(context)
+        }
+    }
+
+    fun forceRecompose(update: MonsterData) {
+        activeMonster.value = update
+    }
+
+    fun resetMonsters() {
+        for (i in monsterList.indices) {
+            monsterList[i] = MonsterData(id=monsterList[i].id)
+        }
+        forceRecompose(monsterList[activeIndex])
+    }
+}
+
 @Composable
 fun MyMonsterView(modifier: Modifier) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val happyThreshold = 2
 
-    val m = MonsterData("A")
-    var monster by remember { mutableStateOf(value = m) }
+    val manager by remember { mutableStateOf(MonsterManager(context, scope)) }
 
-    // Handle initial setup (State 0)
-    // We do this inside the View so it can transition to State 1 immediately
-    // this is also not visible to the user
-    LaunchedEffect(monster.state) {
-        if (monster.state == 0) {
-            monster = monster.copy(
-                variant = (1..3).random(),
-                state = 1
-            )
-        }
-    }
+    LaunchedEffect(Unit) { manager.loadAll() }
 
-    // HANDLE DECAY ON STARTUP
+    val monster by manager.activeMonster
+
     LaunchedEffect(monster.lastUpdated) {
-        if (monster.lastUpdated > 0L) {
-            val currentTime = System.currentTimeMillis()
-            val diffInMs = currentTime - monster.lastUpdated
-            val secondsPassed = diffInMs / 1000.0
-
-            val decayPerSecond = 1
-            val pointsToLose = (secondsPassed * decayPerSecond).toInt()
-
-            if (pointsToLose > 0) {
-                val currentHappy = monster.happiness
-                monster.happiness = currentHappy - pointsToLose
-                monster.lastUpdated = currentTime
-            }
-        }
+        monster.calculateDecay()
     }
 
-    Text("Debug State: ${monster.state} | Variant: ${monster.variant} | Happiness: ${monster.happiness}")
+    Text("Debug: $monster")
+    // Text("Debug State: ${monster.state} | Variant: ${monster.variant} | Happiness: ${monster.happiness}")
 
     // Visible elements go inside this column and
     // switch the contents based ons state
@@ -138,22 +180,30 @@ fun MyMonsterView(modifier: Modifier) {
         when (monster.state) {
             -1 -> Text("Loading...")
 
+            0 -> {
+                val update = monster.copy(
+                    variant = (1..4).random(),
+                    state = 1
+                )
+                manager.update(update)
+            }
+
             1 -> {
                 HatchMonster(monster.variant) {
-                    scope.launch {
-                        monster = monster.copy(state = 2)
-                    }
+                    val update = monster.copy(
+                        state = 2
+                    )
+                    manager.update(update)
                 }
             }
 
             2 -> {
                 NameMonster(monster.variant) { name ->
-                    scope.launch {
-                        monster = monster.copy(
-                            name = name,
-                            state = 3
-                        )
-                    }
+                    val update = monster.copy(
+                        name = name,
+                        state = 3
+                    )
+                    manager.update(update)
                 }
             }
 
@@ -161,25 +211,31 @@ fun MyMonsterView(modifier: Modifier) {
                 ShowMonster(monster.variant, monster.happiness > happyThreshold)
                 ShowMonsterHappiness(monster.name, monster.happiness > happyThreshold)
                 PetMonster {
-                    scope.launch {
-                        monster = monster.copy(
-                            happiness = monster.happiness + 1,
-                            lastUpdated = System.currentTimeMillis()
-                        )
-                    }
+                    val update = monster.copy(
+                        happiness = monster.happiness + 1,
+                    )
+                    manager.update(update)
                 }
             }
+        }
+
+        Button(onClick = { manager.swap() }) {
+            Text("Swap Monster")
+        }
+
+        Button(onClick = { manager.resetMonsters() }) {
+            Text("Reset Monsters")
         }
     }
 }
 
 @Composable
 fun HatchMonster(variant: Int, onHatch: () -> Unit) {
-
     val imageResource = when (variant) {
         1 -> R.drawable.egg_1
         2 -> R.drawable.egg_2
-        else -> R.drawable.egg_3
+        3 -> R.drawable.egg_3
+        else ->  R.drawable.egg_2
     }
 
     Column(modifier = Modifier.padding(16.dp),
@@ -224,12 +280,14 @@ fun ShowMonster(variant: Int, happy: Boolean) {
     val happyResource = when (variant) {
         1 -> R.drawable.monster_1normal
         2 -> R.drawable.monster_2normal
-        else -> R.drawable.monster_3normal
+        3 -> R.drawable.monster_3normal
+        else -> R.drawable.monster4_normal
     }
     val sadResource = when (variant) {
         1 -> R.drawable.monster_1sad
         2 -> R.drawable.monster_2sad
-        else -> R.drawable.monster_3sad
+        3 -> R.drawable.monster_3sad
+        else -> R.drawable.monster4_sad
     }
 
     Image(painterResource(if (happy) happyResource else sadResource),

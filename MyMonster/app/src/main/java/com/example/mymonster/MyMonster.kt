@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -61,7 +63,10 @@ class MyMonster : ComponentActivity() {
 
 object PreferenceKeys {
     val LAST_UPDATED = longPreferencesKey("last_updated")
-    // todo: add states for current state, monster name, happiness, variant
+    val CURRENT_STATE = intPreferencesKey("current_state")
+    val MONSTER_NAME = stringPreferencesKey("monster_name")
+    val HAPPINESS = intPreferencesKey("happiness")
+    val VARIANT = intPreferencesKey("variant")
 }
 
 @Composable
@@ -75,13 +80,21 @@ fun MyMonsterView(modifier: Modifier) {
         .map { it[PreferenceKeys.LAST_UPDATED] ?: 0 }
         .collectAsState(initial = -1)
 
-    // todo: read in monsterState and the rest of our preferences
-    // Note: look at lastUpdated for an example of how things are mapped!
-    // Note: if you don't remove the hardcoded values below, it won't work!
-    val monsterState = 0
-    val variant = 1
-    val happy = 0
-    val monsterName = "Unnamed"
+    val monsterState by context.dataStore.data
+        .map { it[PreferenceKeys.CURRENT_STATE] ?: 0 }
+        .collectAsState(initial = -1)
+
+    val variant by context.dataStore.data
+        .map { it[PreferenceKeys.VARIANT] ?: 0 }
+        .collectAsState(initial = 1)
+
+    val happy by context.dataStore.data
+        .map { it[PreferenceKeys.HAPPINESS] ?: 2 }
+        .collectAsState(initial = 2)
+
+    val monsterName by context.dataStore.data
+        .map { it[PreferenceKeys.MONSTER_NAME ] ?: "Unnamed" }
+        .collectAsState(initial = "Unnamed")
 
     // Handle initial setup (State 0)
     // We do this inside the View so it can transition to State 1 immediately
@@ -90,8 +103,15 @@ fun MyMonsterView(modifier: Modifier) {
         if (monsterState == 0) {
             val newVariant = (1..3).random()
             context.dataStore.edit { prefs ->
-                // todo: edit state to advance to hatch
-                // todo: edit variant to save type
+                prefs[PreferenceKeys.CURRENT_STATE] = monsterState + 1
+                prefs[PreferenceKeys.VARIANT] = newVariant
+            }
+        }
+
+        val resetState = -1
+        if (resetState >= 0) {
+            context.dataStore.edit {
+                it[PreferenceKeys.CURRENT_STATE] = resetState
             }
         }
     }
@@ -103,19 +123,21 @@ fun MyMonsterView(modifier: Modifier) {
             val diffInMs = currentTime - lastUpdated
             val secondsPassed = diffInMs / 1000.0
 
-            val decayPerSecond = 0.1
+            val decayPerSecond = 2
             val pointsToLose = (secondsPassed * decayPerSecond).toInt()
 
             if (pointsToLose > 0) {
                 context.dataStore.edit { prefs ->
                     prefs[PreferenceKeys.LAST_UPDATED] = currentTime
-                    // todo: track happiness by subtracting pointsToLose
+                    var newHappy = happy - pointsToLose
+                    newHappy = if (newHappy < 0) 0 else newHappy
+                    prefs[PreferenceKeys.HAPPINESS] = newHappy
                 }
             }
         }
     }
 
-    Text("Debug State: $monsterState | Variant: $variant")
+    Text("Debug State: $monsterState | Variant: $variant | Happiness: $happy")
 
     // Visible elements go inside this column and
     // switch the contents based ons state
@@ -132,6 +154,7 @@ fun MyMonsterView(modifier: Modifier) {
                     scope.launch {
                         context.dataStore.edit {
                             it[PreferenceKeys.LAST_UPDATED] = System.currentTimeMillis()
+                            it[PreferenceKeys.CURRENT_STATE] = monsterState + 1
                             // todo: edit current state to advance to naming
                         }
                     }
@@ -140,6 +163,12 @@ fun MyMonsterView(modifier: Modifier) {
 
             2 -> {
                 NameMonster(variant) { name ->
+                    scope.launch {
+                        context.dataStore.edit {
+                            it[PreferenceKeys.CURRENT_STATE] = monsterState + 1
+                            it[PreferenceKeys.MONSTER_NAME] = name
+                        }
+                    }
                     // todo: include boilerplate scope and context from HatchMonster
                     // todo: edit name to store the monster name
                     // todo: edit current state to advance to interacting
@@ -149,6 +178,12 @@ fun MyMonsterView(modifier: Modifier) {
                 ShowMonster(variant, happy > happyThreshold)
                 ShowMonsterHappiness(monsterName, happy > happyThreshold)
                 PetMonster {
+                    scope.launch {
+                        context.dataStore.edit {
+                            it[PreferenceKeys.HAPPINESS] = happy + 1
+                            it[PreferenceKeys.LAST_UPDATED] = System.currentTimeMillis()
+                        }
+                    }
                     // todo: include boilerplate scope and context from HatchMonster
                     // todo: edit happiness to store the monster's mood
                     // todo: edit last updated to track your interaction
