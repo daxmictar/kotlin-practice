@@ -5,31 +5,60 @@
 `var` and `val` are important keywords for defining variables. Each has its own behavior and will
 have an effect on how a value for a variable will behave.
 
-If you're familiar with Java, you may have used the `final` keyword, which means that the value
-cannot change once it has been assigned. C and C++ have the `const` keyword, which stands for
-"constant". This too imposes immutability onto a variable.
+If you're familiar with Java, you may have used the `static` and `final` keywords *together*, which means that the value
+cannot change once it has been assigned and it cannot be overriden in a subclass. 
+
+C and C++ have the `const` keyword, which stands for "constant". This too imposes immutability onto a variable.
 
 When declaring and assigning values in Kotlin, `var` allows for mutability, while `val` renders a
 variable immutable. The `var` keyword is short for "variable" while `val` is short for "value".
 
 `var`s are mutable.
 
+```Kotlin
+var x = 5
+x = 10 // Works!
+```
+
 `val`s are immutable.
+
+```Kotlin
+val y = 5
+y = 10 // Won't work!
+```
 
 What about `data class`es? Data classes are a way to represent a container that holds data. While
 they are similar to a regular `class` in principle, what separates the two is code generation. 
 
+## How do we define a data class?
+
+Use the keywords `data` and `class` together along with a `name`. After, a parameter list `()` is required,
+which lists the properties (or fields) of the data class. Here we define a simple data class called Example.
+
+```Kotlin
+data class Example(val name: String, var number: Int)
+var myExample = Example("Hello World!", 10)
+myExample.name = "FooBar" // No! It's labeled as val, so it's immutable.
+myExample.number = 20 // Yes! It's labeled as a var, so it's mutable.
+```
+
+Using a generated `toString()` in Android Studio:
+
+```Kotlin
+// We don't have to call toString() if we use string interpolation (using the $ inside of a String and a var/val).
+Text(text = "$myExample") // -> Coerces to a String as `Example(name="Hello World", number=20)`
+```
+
 In Kotlin, data classes have a few methods automatically generated based on the fields of a 
-data class.
+data class. The `class` body `{}` is optional (see above) if you'd like to write your own methods.
 
 For example, the `toString()`, `equals()`, `hashCode()`, `componentN()`, and `copy()` methods are
 generated for you.
 
-In Java, we have to write our own versions of these methods for each new class that we define
+In Java or a regular Kotlin `class`, we have to write our own versions of these methods for each new class that we define
 (unless we inherit from a class where it has been overriden from `Object`).
 
-By default in Java, `toString()` is inherited from the super `Object` class, it returns the
-object's location in heap memory by default.
+The `toString()` method is inherited from the super `Object` class, it returns the object's location in heap memory by default.
 
 ## Why is this concept important in business, games, or life?
 
