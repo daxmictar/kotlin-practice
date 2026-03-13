@@ -61,12 +61,27 @@ class MyMonster : ComponentActivity() {
     }
 }
 
+@Preview(
+    showBackground = true
+)
+@Composable
+fun MainActivityPreview() {
+    MyMonsterTheme {
+        Scaffold(modifier = Modifier.fillMaxSize()) {
+                innerPadding ->
+            MyMonsterView(modifier = Modifier.padding(innerPadding))
+        }
+    }
+}
+
 object PreferenceKeys {
     val LAST_UPDATED = longPreferencesKey("last_updated")
     val CURRENT_STATE = intPreferencesKey("current_state")
     val MONSTER_NAME = stringPreferencesKey("monster_name")
     val HAPPINESS = intPreferencesKey("happiness")
     val VARIANT = intPreferencesKey("variant")
+    val HUNGER = intPreferencesKey(name = "hunger")
+    val ENERGY = intPreferencesKey(name = "energy")
 }
 
 @Composable
@@ -91,6 +106,14 @@ fun MyMonsterView(modifier: Modifier) {
     val happy by context.dataStore.data
         .map { it[PreferenceKeys.HAPPINESS] ?: 2 }
         .collectAsState(initial = 2)
+
+    val hunger by context.dataStore.data
+        .map { it[PreferenceKeys.HUNGER] ?: 10 }
+        .collectAsState(initial = 0)
+
+    val energy by context.dataStore.data
+        .map { it[PreferenceKeys.ENERGY] ?: 10 }
+        .collectAsState(initial = 10)
 
     val monsterName by context.dataStore.data
         .map { it[PreferenceKeys.MONSTER_NAME ] ?: "Unnamed" }
@@ -129,15 +152,26 @@ fun MyMonsterView(modifier: Modifier) {
             if (pointsToLose > 0) {
                 context.dataStore.edit { prefs ->
                     prefs[PreferenceKeys.LAST_UPDATED] = currentTime
+
                     var newHappy = happy - pointsToLose
                     newHappy = if (newHappy < 0) 0 else newHappy
                     prefs[PreferenceKeys.HAPPINESS] = newHappy
+
+                    var newHunger = hunger - pointsToLose
+                    newHunger = if (newHunger < 0) 0 else newHunger
+                    newHunger = if (newHunger > 10) 10 else newHunger
+                    prefs[PreferenceKeys.HUNGER] = newHunger
+
+                    var newEnergy = energy + pointsToLose
+                    newEnergy = if (newEnergy < 0) 0 else newEnergy
+                    newEnergy = if (newEnergy > 10) 10 else newEnergy
+                    prefs[PreferenceKeys.HUNGER] = newEnergy
                 }
             }
         }
     }
 
-    Text("Debug State: $monsterState | Variant: $variant | Happiness: $happy")
+    Text("Debug State: $monsterState | Variant: $variant | Happiness: $happy | Energy: $energy | Hunger: $hunger")
 
     // Visible elements go inside this column and
     // switch the contents based ons state
@@ -155,7 +189,6 @@ fun MyMonsterView(modifier: Modifier) {
                         context.dataStore.edit {
                             it[PreferenceKeys.LAST_UPDATED] = System.currentTimeMillis()
                             it[PreferenceKeys.CURRENT_STATE] = monsterState + 1
-                            // todo: edit current state to advance to naming
                         }
                     }
                 }
@@ -169,9 +202,6 @@ fun MyMonsterView(modifier: Modifier) {
                             it[PreferenceKeys.MONSTER_NAME] = name
                         }
                     }
-                    // todo: include boilerplate scope and context from HatchMonster
-                    // todo: edit name to store the monster name
-                    // todo: edit current state to advance to interacting
                 }
             }
             3 -> {
@@ -184,9 +214,23 @@ fun MyMonsterView(modifier: Modifier) {
                             it[PreferenceKeys.LAST_UPDATED] = System.currentTimeMillis()
                         }
                     }
-                    // todo: include boilerplate scope and context from HatchMonster
-                    // todo: edit happiness to store the monster's mood
-                    // todo: edit last updated to track your interaction
+                }
+                PlayWithMonster {
+                    scope.launch {
+                        context.dataStore.edit {
+                            it[PreferenceKeys.HAPPINESS] = if (energy > 0) happy + 5 else happy + 0
+                            it[PreferenceKeys.ENERGY] = (energy - 1).coerceIn(0..10)
+                            it[PreferenceKeys.LAST_UPDATED] = System.currentTimeMillis()
+                        }
+                    }
+                }
+                FeedMonster {
+                    scope.launch {
+                        context.dataStore.edit {
+                            it[PreferenceKeys.HUNGER] = (hunger - 1).coerceIn(0..10)
+                            it[PreferenceKeys.LAST_UPDATED] = System.currentTimeMillis()
+                        }
+                    }
                 }
             }
         }
@@ -266,6 +310,20 @@ fun ShowMonsterHappiness(name: String, happy: Boolean) {
 fun PetMonster(onPet: () -> Unit) {
     Button(onClick = onPet) {
         Text("Pet")
+    }
+}
+
+@Composable
+fun PlayWithMonster(onPlay: () -> Unit) {
+    Button(onClick = onPlay) {
+       Text("Play")
+    }
+}
+
+@Composable
+fun FeedMonster(onPlay: () -> Unit) {
+    Button(onClick = onPlay) {
+        Text("Feed")
     }
 }
 
