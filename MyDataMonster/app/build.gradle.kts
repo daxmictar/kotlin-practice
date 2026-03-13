@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.mymonster"
+    namespace = "com.example.mydatamonster"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.example.mymonster"
+        applicationId = "com.example.mydatamonster"
         minSdk = 36
         targetSdk = 36
         versionCode = 1

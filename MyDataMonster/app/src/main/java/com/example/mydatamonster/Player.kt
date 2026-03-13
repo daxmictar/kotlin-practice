@@ -1,4 +1,4 @@
-package com.example.mymonster
+package com.example.mydatamonster
 
 class Enemy(
     var health: Int = 100,

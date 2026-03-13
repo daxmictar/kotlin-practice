@@ -1,4 +1,4 @@
-package com.example.mymonster
+package com.example.mydatamonster
 
 import org.junit.Test
 

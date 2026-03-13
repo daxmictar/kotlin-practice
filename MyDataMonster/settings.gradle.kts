@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MyMonster"
+rootProject.name = "MyDataMonster"
 include(":app")
  

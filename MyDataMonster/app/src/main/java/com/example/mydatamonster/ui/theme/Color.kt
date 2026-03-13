@@ -1,4 +1,4 @@
-package com.example.mymonster.ui.theme
+package com.example.mydatamonster.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

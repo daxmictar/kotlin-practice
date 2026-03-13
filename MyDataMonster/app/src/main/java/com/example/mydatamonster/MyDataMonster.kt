@@ -1,4 +1,4 @@
-package com.example.mymonster
+package com.example.mydatamonster
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.example.mymonster.ui.theme.MyMonsterTheme
+import com.example.mydatamonster.ui.theme.MyDataMonsterTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -45,13 +45,13 @@ import kotlinx.serialization.json.Json
 
 val Context.dataStore by preferencesDataStore(name = "monster_prefs")
 
-class MyMonster : ComponentActivity() {
+class MyDataMonster : ComponentActivity() {
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyMonsterTheme {
+            MyDataMonsterTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) {
                     innerPadding ->
                     MyMonsterView(modifier = Modifier.padding(innerPadding))
@@ -310,7 +310,7 @@ fun PetMonster(onPet: () -> Unit) {
 @Preview
 @Composable
 fun PreviewUIElements() {
-    MyMonsterTheme {
+    MyDataMonsterTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
