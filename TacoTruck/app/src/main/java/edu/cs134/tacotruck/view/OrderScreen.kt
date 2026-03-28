@@ -31,6 +31,11 @@ fun OrderScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        val message = viewModel.getAlert()
+        Text(text = message)
+
+        Spacer(modifier = Modifier.height(20.dp))
+
         Button(onClick = { viewModel.clearOrder() }) {
             Text("Clear Order")
         }

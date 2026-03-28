@@ -19,6 +19,7 @@ fun MenuScreen(
     val burrito = MenuItem("🌯 Burrito", 7.0)
     val guac = MenuItem("🥑 Guacamole", 2.5)
     val horchata = MenuItem("🥛 Horchata", 2.0)
+    val quesadilla = MenuItem(name = "🌯 Quesadilla", price = 5.0)
 
     Column(
         modifier = modifier
@@ -35,6 +36,10 @@ fun MenuScreen(
 
         Button(onClick = { viewModel.addItem(burrito) }) {
             Text("Add Burrito ($7)")
+        }
+
+        Button(onClick = { viewModel.addItem(quesadilla) }) {
+            Text("Add Quesadilla ($5)")
         }
 
         Button(onClick = { viewModel.addItem(guac) }) {
