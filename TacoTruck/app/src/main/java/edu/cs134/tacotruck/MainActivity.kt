@@ -25,6 +25,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import edu.cs134.tacotruck.view.KitchenScreen
 import edu.cs134.tacotruck.view.MenuScreen
 import edu.cs134.tacotruck.view.OrderScreen
+import edu.cs134.tacotruck.viewmodel.TacoTruckMenuViewModel
 import edu.cs134.tacotruck.viewmodel.TacoTruckViewModel
 
 class MainActivity : ComponentActivity() {
@@ -41,6 +42,7 @@ class MainActivity : ComponentActivity() {
 fun TacoTruckApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.MENU) }
     val restaurantViewModel: TacoTruckViewModel = viewModel()
+    val menuViewModel: TacoTruckMenuViewModel = viewModel()
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
@@ -61,8 +63,12 @@ fun TacoTruckApp() {
     ) {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             when (currentDestination) {
+                // Both views are needed here because the menu view must
+                // communicate with the restaurant view in order to store
+                // menu items in the order
                 AppDestinations.MENU -> MenuScreen(
-                    viewModel = restaurantViewModel,
+                    menuViewModel= menuViewModel,
+                    tacoTruckViewModel = restaurantViewModel,
                     modifier = Modifier.padding(innerPadding)
                 )
                 AppDestinations.ORDER -> OrderScreen(

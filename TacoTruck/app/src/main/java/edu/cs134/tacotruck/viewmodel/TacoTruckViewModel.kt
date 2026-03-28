@@ -29,7 +29,6 @@ class TacoTruckViewModel : ViewModel() {
 
         return "";
     }
-
     fun getStatus(): String {
         return when (_order.value.count()) {
             in 0..5 -> "\uD83D\uDFE2 Available"
