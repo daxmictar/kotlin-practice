@@ -22,7 +22,6 @@ fun ScrapbookSlot(
     photo: Bitmap?,
     onClick: () -> Unit
 ) {
-
     Box(
         modifier = Modifier
             .padding(8.dp)
