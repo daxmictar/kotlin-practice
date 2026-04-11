@@ -3,6 +3,7 @@ package edu.cs134.scrapbook
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +31,17 @@ class Photo(
     }
 
     val id: Int = _identifier++
+}
+
+data class TextFile(
+    val name: String,
+    val content: String,
+    val uri: Uri,
+    val id: Int = nextId++
+) {
+    companion object {
+        private var nextId = 0
+    }
 }
 
 class ScrapbookViewModel : ViewModel() {
@@ -75,5 +87,30 @@ class ScrapbookViewModel : ViewModel() {
 
     fun getPhoto(slot: Int): Bitmap? {
         return if (photos.value.isEmpty()) null else photos.value[slot].photo;
+    }
+
+    // Text Files
+    private val _textFiles = MutableStateFlow<List<TextFile>>(emptyList())
+    val textFiles = _textFiles.asStateFlow()
+
+    fun loadTextFile(context: Context, uri: Uri) {
+        val content = context.contentResolver.openInputStream(uri)
+            ?.bufferedReader()
+            ?.use { it.readText() } ?: return
+        val name = uri.lastPathSegment?.substringAfterLast("/") ?: "unknown.txt"
+        addTextFile(name, content, uri)
+    }
+
+    fun addTextFile(name: String, content: String, uri: Uri) {
+        _textFiles.update { list -> list + TextFile(name, content, uri) }
+        println("New text file list: ${_textFiles.value.map { it.name }}")
+    }
+
+    fun removeTextFile(id: Int) {
+        _textFiles.update { list -> list.filter { item -> id != item.id } }
+    }
+
+    fun getTextFile(slot: Int): TextFile? {
+        return if (_textFiles.value.isEmpty()) null else _textFiles.value[slot]
     }
 }
