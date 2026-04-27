@@ -26,7 +26,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.*
 
 class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
-    private lateinit var tts: TextToSpeech
+    private lateinit var textToSpeech: TextToSpeech
 
     private val retrofit = Retrofit.Builder()
         .baseUrl("https://official-joke-api.appspot.com/")
@@ -61,14 +61,14 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     private fun speakText(text: String) {
         Log.d("TTS", "Speaking: $text")
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+        textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
     }
 
     private var pendingTextToSpeak: String? = null
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts.language = Locale.getDefault()
+            textToSpeech.language = Locale.getDefault()
             ttsReady = true
             pendingTextToSpeak?.let {
                 speakText(it)
@@ -81,9 +81,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        tts = TextToSpeech(this, this)
+        textToSpeech = TextToSpeech(this, this)
 
-        val engine = tts.defaultEngine
+        val engine = textToSpeech.defaultEngine
         Log.d("TTS", "Using TTS engine: $engine")
 
         setContent {
@@ -102,42 +102,53 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             }
 
             val speechLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartActivityForResult()
-            ) { result ->
-                val data = result.data
-                if (result.resultCode == RESULT_OK && data != null) {
-                    val matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                    val spokenText = matches?.get(0) ?: ""
-                    jokeText = "You said: $spokenText\nFetching joke..."
-                    fetchJoke(
-                        onLoadingChange = { loading = it },
-                        callback = { joke ->
-                            jokeText = joke
-                            speakText(joke)
-                        }
-                    )
+                contract =
+                    ActivityResultContracts.StartActivityForResult()
+            ) {
+                result ->
+                    val data = result.data
+                    if (result.resultCode == RESULT_OK && data != null) {
+                        val matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                        val spokenText = matches?.get(0) ?: ""
+                        jokeText = "You said: $spokenText\nFetching joke..."
+                        fetchJoke(
+                            onLoadingChange = { loading = it },
+                            callback = {
+                                joke ->
+                                    jokeText = joke
+                                    speakText(joke)
+                            }
+                        )
+                    }
                 }
-            }
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                horizontalAlignment = Alignment
+                    .CenterHorizontally,
+                verticalArrangement = Arrangement
+                    .Center
             ) {
-                Text(text = jokeText, modifier = Modifier.padding(bottom = 24.dp))
-                Button(onClick = {
-                    if (!SpeechRecognizer.isRecognitionAvailable(this@MainActivity)) return@Button
-                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                        putExtra(
-                            RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-                        )
-                        putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                Text(
+                    text = jokeText,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+
+                Button(
+                    onClick = {
+                        if (!SpeechRecognizer.isRecognitionAvailable(this@MainActivity)) return@Button
+                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                            putExtra(
+                                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                            )
+                            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                        }
+                        speechLauncher.launch(intent)
                     }
-                    speechLauncher.launch(intent)
-                }) {
+                ) {
                     Text("Talk")
                 }
                 if (loading) CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
@@ -147,8 +158,8 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private var ttsReady = false
 
     override fun onDestroy() {
-        tts.stop()
-        tts.shutdown()
+        textToSpeech.stop()
+        textToSpeech.shutdown()
         super.onDestroy()
     }
 }
